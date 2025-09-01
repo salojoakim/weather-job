@@ -13,22 +13,27 @@ Robust felhantering, loggning, **schemaläggning i Windows Task Scheduler**, exp
 - Exportscript:
   - `export_weather.py` – rådata till CSV/JSON.
   - `export_aggregate.py` – **dagliga aggregat** (min/medel/max temp, nederbörd m.m.).
-- Tester (`tests.py` eller `pytest`).
+- Tester (`tests.py`).
 - Körscript för Task Scheduler: `run_weather_job.cmd`.
 
 ---
 
 ## Mappstruktur
+
+```text
 weather-job/
-├─ .env # dina hemligheter (ignoreras av Git)
-├─ .env.example # mall (utan hemligheter)
+├─ .env                (IGNORERAS – hemligheter)
+├─ .env.example        (mall utan hemligheter)
 ├─ README.md
 ├─ .gitignore
 ├─ requirements.txt
-├─ main.py # huvudjobb (hourly → SQLite)
-├─ export_weather.py # exportera rådata (valfritt)
-├─ export_aggregate.py # exportera DAGLIGA aggregat
-├─ run_weather_job.cmd # körs av Task Scheduler
-├─ tests.py # automatiska tester (eller tests/…)
-├─ logs/ # loggar (ej versionskontroll)
-└─ exports/ # genererade CSV/JSON (ej versionskontroll)
+├─ main.py             (huvudjobb: hourly → SQLite)
+├─ export_weather.py   (export av rådata – valfritt)
+├─ export_aggregate.py (dagliga aggregat → CSV/JSON)
+├─ run_weather_job.cmd (körs av Task Scheduler)
+├─ tests.py            (automatiska tester)
+├─ logs/               (ignoreras i Git)
+│  └─ .gitkeep
+├─ exports/            (ignoreras i Git)
+│  └─ .gitkeep
+└─ venv/               (lokal virtuell miljö – ignoreras)
