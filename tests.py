@@ -1,6 +1,14 @@
-# tests.py
-# Enhetstester för main.py utan riktiga nätverksanrop eller extern DB.
-# Kör:  (venv) python tests.py -v
+"""
+tests.py
+========
+Enhetstester för main.py utan riktiga nätverksanrop eller extern DB.
+- Nätverk mockas (ingen trafik mot Visual Crossing).
+- SQLite körs in-memory (snabbt och isolerat).
+- Tidsstämplar jämförs i intervall för att slippa mikrosekund-problem.
+
+Körning:
+    (venv) python tests.py -v
+"""
 
 import os
 import unittest
@@ -9,19 +17,28 @@ from datetime import timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
-# Se till att main.py inte klagar på API-nyckel vid import
+# Säkra att main.py inte klagar på API-nyckel/DB_URL vid import under test.
 os.environ.setdefault("VC_API_KEY", "TESTKEY123456")
 os.environ.setdefault("VC_LOCATION", "Kungsbacka")
 os.environ.setdefault("VC_UNIT_GROUP", "metric")
-# Vi använder inte main.DB_URL i testerna (förutom import), men sätter ändå något:
 os.environ.setdefault("DATABASE_URL", "sqlite:///weather_test.db")
 
-# Importera appen
+# Importera applikationsmodulen efter att env satts.
 import main as app
 
 
 class FakeResponse:
-    """Minimal requests.Response-lik klass för att mocka HTTP-svar."""
+    """
+    Minimal ersättning för requests.Response.
+
+    Egenskaper:
+        status_code – HTTP-status
+        text        – råtext
+        headers     – valfria rubriker (t.ex. Retry-After)
+    Metoder:
+        json()            – returnerar json_data eller höjer fel om saknas
+        raise_for_status()– höjer requests.HTTPError vid 4xx/5xx
+    """
     def __init__(self, status_code=200, json_data=None, text_data="", headers=None):
         self.status_code = status_code
         self._json = json_data
@@ -40,14 +57,20 @@ class FakeResponse:
 
 
 class TestHelpers(unittest.TestCase):
+    """Småhjälpare/utility-tester."""
+
     def test_combine_date_time_normalizes_hour(self):
+        """Säkerställ att '0:05:00' blir '00:05:00'."""
         dt = app.combine_date_time("2025-08-27", "0:05:00")
         self.assertEqual(dt.isoformat(sep=" "), "2025-08-27 00:05:00")
 
 
 class TestFetchWithRetries(unittest.TestCase):
-    @patch("main.time.sleep", return_value=None)  # snabba tester (ingen verklig väntan)
+    """Tester för HTTP-retrylogik."""
+
+    @patch("main.time.sleep", return_value=None)  # gör testerna snabbare (ingen faktisk väntan)
     def test_retries_then_success(self, _sleep):
+        """500 → retry → 200 ska ge lyckat svar."""
         seq = [
             FakeResponse(500, text_data="server error", headers={"Retry-After": "0"}),
             FakeResponse(200, json_data={"ok": True}),
@@ -57,12 +80,15 @@ class TestFetchWithRetries(unittest.TestCase):
             self.assertEqual(r.json()["ok"], True)
 
     def test_unauthorized_raises(self):
+        """401 ska kasta direkt (ingen retry)."""
         with patch("main.requests.get", return_value=FakeResponse(401, text_data="unauthorized")):
             with self.assertRaises(Exception):
                 app.fetch_with_retries("http://example.com", {})
 
 
 class TestFetchHoursParsing(unittest.TestCase):
+    """Parser-test: att vi gör om VC JSON → rader med rätt fält."""
+
     def test_parses_days_and_hours(self):
         fake_json = {
             "timezone": "Europe/Stockholm",
@@ -78,6 +104,7 @@ class TestFetchHoursParsing(unittest.TestCase):
                  ]},
             ]
         }
+        # Mocka HTTP-lagret så fetch_hours får exakt denna JSON
         with patch("main.fetch_with_retries", return_value=FakeResponse(200, json_data=fake_json)):
             rows = app.fetch_hours("Kungsbacka", "metric")
             self.assertEqual(len(rows), 2)
@@ -88,8 +115,10 @@ class TestFetchHoursParsing(unittest.TestCase):
 
 
 class TestSQLiteUpsert(unittest.TestCase):
+    """DB-test: upsert med senare uppdatering av samma PK."""
+
     def setUp(self):
-        # SQLite in-memory med StaticPool så samma connection återanvänds
+        # In-memory SQLite + StaticPool → samma connection över hela testfallet.
         self.engine = create_engine(
             "sqlite://",
             connect_args={"check_same_thread": False},
@@ -101,8 +130,9 @@ class TestSQLiteUpsert(unittest.TestCase):
         self.engine.dispose()
 
     def test_insert_and_update(self):
+        # 1) INSERT
         ts = app.combine_date_time("2025-08-27", "00:00:00")
-        ts2 = ts + timedelta(seconds=1)  # jämför i intervall, undvik mikrosekunder-mismatch
+        ts2 = ts + timedelta(seconds=1)  # intervalljämförelse undviker mikrosekund-mismatch
 
         row1 = {
             "location": "Kungsbacka",
@@ -128,7 +158,7 @@ class TestSQLiteUpsert(unittest.TestCase):
         self.assertIsNotNone(v1)
         self.assertAlmostEqual(v1[0], 10.0)
 
-        # Uppdatera samma PK med ny temp
+        # 2) UPDATE (samma PK, ändrad temp)
         row1b = dict(row1)
         row1b["temp"] = 12.5
         app.upsert_sqlite(self.engine, [row1b])
