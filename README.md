@@ -19,3 +19,16 @@ Robust felhantering, loggning, **schemaläggning i Windows Task Scheduler**, exp
 ---
 
 ## Mappstruktur
+weather-job/
+├─ .env # dina hemligheter (ignoreras av Git)
+├─ .env.example # mall (utan hemligheter)
+├─ README.md
+├─ .gitignore
+├─ requirements.txt
+├─ main.py # huvudjobb (hourly → SQLite)
+├─ export_weather.py # exportera rådata (valfritt)
+├─ export_aggregate.py # exportera DAGLIGA aggregat
+├─ run_weather_job.cmd # körs av Task Scheduler
+├─ tests.py # automatiska tester (eller tests/…)
+├─ logs/ # loggar (ej versionskontroll)
+└─ exports/ # genererade CSV/JSON (ej versionskontroll)
