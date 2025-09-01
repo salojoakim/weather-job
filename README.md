@@ -1,53 +1,21 @@
-Weather Job (Visual Crossing → SQLite)
+# Weather Job (Visual Crossing → SQLite)
 
-Automatiserat Python-jobb som hämtar timvis väderdata från Visual Crossing för en plats (t.ex. Kungsbacka) och upserter till en SQL-tabell (SQLite som standard).
-Inkluderar robust felhantering, loggning, schemaläggning i Windows Task Scheduler samt script för CSV/JSON-export och dagliga aggregat.
-Automatiska tester (unittest/pytest) ingår.
+Automatiserat Python-jobb som hämtar **timvis** väderdata från Visual Crossing för en plats (t.ex. Kungsbacka) och **upserter** till en SQL-tabell (SQLite).  
+Robust felhantering, loggning, **schemaläggning i Windows Task Scheduler**, export till **CSV/JSON**, samt automatiska tester.
 
-Innehåll
+---
 
-Funktioner
+## Funktioner
+- Hämtar timdata via Visual Crossing API.
+- Skriver till **SQLite** (`weather.db`), ingen server krävs.
+- **UPSERT** på `(location, timestamp_local)` → idempotent körning.
+- Felhantering: retries för 429/5xx/timeout, tydliga loggar.
+- Exportscript:
+  - `export_weather.py` – rådata till CSV/JSON.
+  - `export_aggregate.py` – **dagliga aggregat** (min/medel/max temp, nederbörd m.m.).
+- Tester (`tests.py` eller `pytest`).
+- Körscript för Task Scheduler: `run_weather_job.cmd`.
 
-Mappstruktur
+---
 
-Förkrav
-
-Installation & setup (Windows cmd)
-
-Miljövariabler (.env)
-
-Köra manuellt
-
-Schemaläggning (Task Scheduler)
-
-Exportera data (CSV/JSON)
-
-Tester
-
-Loggar & felsökning
-
-Kodstandard
-
-Säkerhet
-
-Licens
-
-Funktioner
-
-Hämtar väder per timme via Visual Crossing API.
-
-Skriver till SQLite (en fil weather.db, ingen server behövs).
-
-UPSERT (idempotent) på (location, timestamp_local).
-
-Robust felhantering: retries på nätverksfel/429/5xx, tydliga loggar.
-
-Schemaläggning för automatisk körning (Windows Task Scheduler).
-
-Exportscript:
-
-export_weather.py – rådata till CSV/JSON.
-
-export_aggregate.py – dagliga aggregat (min/medel/max temp, nederbörd m.m.) till CSV/JSON.
-
-Automatisk testning (tests.py + valfri pytest).
+## Mappstruktur
