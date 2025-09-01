@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+
+# Miljö/hemligheter
+.env
+.env.*
+
+# Lokala databaser, loggar, exporter
+*.db
+logs/
+exports/
+
+# Test-cache och verktyg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
